@@ -1,15 +1,37 @@
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:expense_planner/widgets/models/transaction.dart';
 import 'package:expense_planner/widgets/widgets/chart.dart';
 import 'package:expense_planner/widgets/widgets/new_transaction.dart';
 import 'package:expense_planner/widgets/widgets/transaction_list.dart';
 import 'package:flutter/material.dart';
 
-void main() => runApp(MyApp());
+void main() { 
+
+  //to not allow the app to be in landscape mode. It'll always be in portrait mode
+  /* WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitDown,
+    DeviceOrientation.portraitUp,
+    ]); */
+  runApp(MyApp());
+
+}
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+
+    return Platform.isIOS ? 
+
+    CupertinoApp(
+      title: 'Flutter App',
+      theme: CupertinoThemeData(
+        //do what you want 
+      ),
+    )
+     : 
+    MaterialApp(
       title: 'Flutter App',
 
       theme: ThemeData(
@@ -47,10 +69,31 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
+  bool _showChart=false;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    WidgetsBinding.instance.addObserver(this);
+    super.initState();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // TODO: implement didChangeAppLifecycleState
+    print(state);
+    super.didChangeAppLifecycleState(state);
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
   
-
   final List<Transaction> _userTransactions=[
 
     /* Transaction
@@ -99,7 +142,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void _startAddNewTransaction(BuildContext ctx){
     //showModalBottomSheet requires context and build. We can get context with the help of BuildContext and hence we have
     //written BuildContext ctx as arguement in the function.
-    showModalBottomSheet(context: ctx, 
+    showModalBottomSheet(
+    context: ctx, 
     builder: (bctx) {
       return NewTransaction(_addNewTransaction);
   },
@@ -117,39 +161,175 @@ void _deleteTransaction(String id){
   });
 }
 
-  @override
-  Widget build(BuildContext context) {
-    print('userTransactionInMain');
-    print(_userTransactions.toList());
-    print('recentTransactionToBePassedToChartInMain');
-    print(_recentTransactions);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Flutter App', 
-        //style: TextStyle(fontFamily: 'Open Sans'),
+List <Widget> _builderMethodForLandscapeContent(MediaQueryData mediaQuery, AppBar appBarr,Widget transactionListWidget){
+  //we can return only one value (widget) inside a function.
+ return [Row(
+    //depending on the switch, whether it is turned on or not our UI will change for which we need to be in a
+    //stateful widget, and fortuantely we already are in it :)
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: <Widget>[
+     Text('Show chart',
+     style: Theme.of(context).textTheme.title
+    ),
+    Switch.adaptive
+    (
+     activeColor: Colors.deepOrangeAccent,
+     value: _showChart, onChanged: (val){
+     setState(() {
+     _showChart=val;
+     });
+    })
+    ],
+  )
+  ,
+  //if _showChart is true then display chart
+   _showChart?
+         Container(
+           //'MediaQuery.of(context).padding.top' - to deduct height of status bar
+          height: (mediaQuery.size.height - appBarr.preferredSize.height - mediaQuery.padding.top)*0.7,
+          //Chart constructor takes transactions upto 7 days so we have created a new list here with getter which
+          //generates recent transactions upto 7 days.
+          child: Chart(_recentTransactions),
+         )
+        //if _showChart is false then display list of transactions.
+        :
+        transactionListWidget
+  ];
+}
+
+List <Widget> _builderMethodForPortraitContent(MediaQueryData mediaQuery, AppBar appBarr,Widget transactionListWidget){
+  //we can return only one value (widget) inside a function.
+   return [Container(
+    height: (mediaQuery.size.height - appBarr.preferredSize.height - mediaQuery.padding.top) * 0.3,
+    //Chart constructor takes transactions upto 7 days so we have created a new list here with getter which
+    //generates recent transactions upto 7 days.
+    child: Chart(_recentTransactions),
+    )
+    ,
+    transactionListWidget
+   ];
+}
+
+Widget _builderMethodForCupertinoAppBar(){
+
+  return CupertinoNavigationBar(
+      middle: Text('Personal Expense'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+
+          //we cannot add icon button here inside cupertinoNavigationBar because ancestor of item buttom should
+          //implement material design, which is not the case here. So we will create our own new custom button.
+          GestureDetector(
+            child: Icon(CupertinoIcons.add),
+            onTap:() => _startAddNewTransaction(context),
+          )
+
+        ],
+      ),
+    ); 
+
+}
+
+Widget  _builderMethodForNormalAppBar(){
+ return AppBar(
+        title: Text('Personal Expense', 
         ), 
         actions: <Widget>[
           IconButton(icon: Icon(Icons.add),
           onPressed: () => _startAddNewTransaction(context),
           ),
         ],
-      ),
-      body:SingleChildScrollView(
-       child: Column(
-        //mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      );
+}
+
+
+  @override
+  Widget build(BuildContext context) {
+
+    final mediaQuery=MediaQuery.of(context);
+
+    //to check whether orientation is landscape or not. 'isLandscape' is a boolean which will be true if orientation
+    //is landscape. We will shoe the switch only if orientation is landscape.
+    final isLandscape=mediaQuery.orientation==Orientation.landscape;
+
+    //we have created a new appBar variable named as appBarr so that we can use its height and
+    //deduct it from different widgets whenever required.
+
+    //we have explicity defined appBarr type to be PreferredSizeWidget because dart wasn't able to find out.
+    final PreferredSizeWidget appBarr= Platform.isIOS ? 
+     _builderMethodForCupertinoAppBar()
+   /*  CupertinoNavigationBar(
+      middle: Text('Personal Expense'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
 
-        //Chart constructor takes transactions upto 7 days so we have created a new list here with getter which
-        //generates recent transactions upto 7 days.
-        Chart(_recentTransactions),
+          //we cannot add icon button here inside cupertinoNavigationBar because ancestor of item buttom should
+          //implement material design, which is not the case here. So we will create our own new custom button.
+          GestureDetector(
+            child: Icon(CupertinoIcons.add),
+            onTap:() => _startAddNewTransaction(context),
+          )
 
-        TransactionList(_userTransactions, _deleteTransaction),
-  
+        ],
+      ),
+    ) :  */
+    :
+    _builderMethodForNormalAppBar();
+    //AppBar(
+      /*   title: Text('Personal Expense', 
+        ), 
+        actions: <Widget>[
+          IconButton(icon: Icon(Icons.add),
+          onPressed: () => _startAddNewTransaction(context),
+          ),
+        ],
+      ); */
+
+      final transactionListWidget=
+      Container(
+          height: (mediaQuery.size.height - appBarr.preferredSize.height
+          - mediaQuery.padding.top)*0.7,
+          child: TransactionList(
+            _userTransactions, _deleteTransaction
+          ),
+      );
+
+       final appBody = SafeArea(child:SingleChildScrollView(
+         
+       child: Column(
+         crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+
+          //we do not use curly braces with if inside list (here list of widgets)
+           if(isLandscape)
+           ..._builderMethodForLandscapeContent(mediaQuery,appBarr,transactionListWidget), 
+
+          if(!isLandscape)
+          ..._builderMethodForPortraitContent(mediaQuery,appBarr,transactionListWidget),
+        
       ],
       ),
       ),
+       );
 
-      floatingActionButton: FloatingActionButton(
+    return Platform.isIOS ? 
+    CupertinoPageScaffold(
+      child: appBody,
+      navigationBar: appBarr ,
+    ) 
+    : 
+    Scaffold(
+      appBar: appBarr,
+      body: appBody,
+      
+      floatingActionButton: 
+      Platform.isIOS 
+      ? 
+      Container() 
+      :
+      FloatingActionButton(
        child:Icon(Icons.add),
        //foregroundColor:Theme.of(context).primaryColor,
        onPressed: () => _startAddNewTransaction(context),

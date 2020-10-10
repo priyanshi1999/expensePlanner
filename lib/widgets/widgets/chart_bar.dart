@@ -8,14 +8,19 @@ class ChartBar extends StatelessWidget {
   //spendingPercentageOfTotal to determine how much background of the bar should be colored.
   final double spendingPercentageOfTotal;
 
-  ChartBar(this.label,this.spendingAmount,this.spendingPercentageOfTotal);
+  const ChartBar(this.label,this.spendingAmount,this.spendingPercentageOfTotal);
 
   @override
   Widget build(BuildContext context) {
+    //we need to calculate height of bars dynamically. And we will do that by making use of constraints from
+    //LayoutBuilder
+    return LayoutBuilder(builder: (context,constraints) {
+
     return Column(
       children: <Widget>[
         Container(
-          height: 20,
+          //height: 20,
+          height:constraints.maxHeight *0.15,
           child: FittedBox(
                child: Text(
                '₹'+spendingAmount.toStringAsFixed(0),
@@ -27,10 +32,12 @@ class ChartBar extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height:4
+          //height:4
+          height:constraints.maxHeight *0.05,
         ),
         Container(
-          height: 80,
+          //height: 80,
+          height:constraints.maxHeight *0.6,
           width: 15,
           child: Stack(
             children: <Widget>[
@@ -61,16 +68,25 @@ class ChartBar extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height:4
+          //height:4
+          height:constraints.maxHeight *0.05,
         ),
-        Text(
-          label,
-          style: TextStyle(
-           color: Colors.black,
-           fontWeight: FontWeight.bold
-           ), 
+        Container(
+          height:constraints.maxHeight *0.15,
+          child: FittedBox(
+              child: Text(
+              label,
+              style: TextStyle(
+               color: Colors.black,
+               fontWeight: FontWeight.bold
+               ), 
+            ),
+          ),
         ),
       ],
     );
+
+    },
+    ); 
   }
 }

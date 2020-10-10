@@ -69,32 +69,33 @@ class Chart extends StatelessWidget {
     print(recentTransactions);
     print('groupedTransactions');
     print(groupedTransactionValues); */
+    
     return Card(
-      
-      color: Colors.white,
-      margin: EdgeInsets.all(20),
-      elevation: 8,
-      child: Padding(
-        padding: EdgeInsets.all(10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: groupedTransactionValues.map((dataaa){
-            //return Text(dataaa['day'].toString()+':'+dataaa['amount'].toString(), 
+        
+        color: Colors.white,
+        margin: EdgeInsets.all(20),
+        elevation: 8,
+        child: Padding(
+          padding: EdgeInsets.all(10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: groupedTransactionValues.map((dataaa){
+              //return Text(dataaa['day'].toString()+':'+dataaa['amount'].toString(), 
 
-            //now we need percentageTotalSpending as it is required in ChartBar constructor. So we will calculate that
-            //using another getter.
-            //dataaa['amount'] is an object and we cannot apply divide operation on an object so "as double"
-            return Flexible(
-              fit: FlexFit.tight,
-              child: (
-               ChartBar(dataaa['day'], dataaa['amount'],
-               totalSpending==0.0 ? 0.0 : ((dataaa['amount'] as double) / totalSpending)
-               )
-              ),
-            );
-          }).toList(),
+              //now we need percentageTotalSpending as it is required in ChartBar constructor. So we will calculate that
+              //using another getter.
+              //dataaa['amount'] is an object and we cannot apply divide operation on an object so "as double"
+              return Flexible(
+                fit: FlexFit.tight,
+                child: (
+                 ChartBar(dataaa['day'], dataaa['amount'],
+                 totalSpending==0.0 ? 0.0 : ((dataaa['amount'] as double) / totalSpending)
+                 )
+                ),
+              );
+            }).toList(),
+          ),
         ),
-      ),
-    );
+      );
   }
 }
